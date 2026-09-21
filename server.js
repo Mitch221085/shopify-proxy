@@ -1,44 +1,12 @@
 const http = require('http');
 const https = require('https');
 
-const STORES = {
-  'n1vssu-ky.myshopify.com': {
-    client_id: 'ba6a9d61b26c4a5c694a44ce57f63583',
-    client_secret: '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'
-  },
-  'rut00h-1g.myshopify.com': {
-    client_id: 'ba6a9d61b26c4a5c694a44ce57f63583',
-    client_secret: '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'
-  }
-};
+const CLIENT_ID = 'ba6a9d61b26c4a5c694a44ce57f63583';
+const CLIENT_SECRET = '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';
+const PROXY_BASE = 'https://shopify-proxy-zvbr.onrender.com';
 
-const tokenCache = {};
-
-function getToken(domain) {
-  return new Promise((resolve, reject) => {
-    if (tokenCache[domain] && tokenCache[domain].expires > Date.now()) {
-      return resolve(tokenCache[domain].token);
-    }
-    const store = STORES[domain];
-    if (!store) return reject(new Error('Unknown store'));
-    const body = JSON.stringify({ client_id: store.client_id, client_secret: store.client_secret, grant_type: 'client_credentials' });
-    const options = { hostname: domain, path: '/admin/oauth/access_token', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } };
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.access_token) { tokenCache[domain] = { token: json.access_token, expires: Date.now() + 3600000 }; resolve(json.access_token); }
-          else reject(new Error('No token: ' + data));
-        } catch(e) { reject(e); }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
+// In-memory token store (persists as long as Render keeps the process alive)
+const tokenStore = {};
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -46,24 +14,118 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
+  const url = new URL(req.url, `http://${req.headers.host}`);
+
+  // ── OAuth Step 1: /auth?shop=xxx.myshopify.com ──────────────────────────────
+  if (url.pathname === '/auth') {
+    const shop = url.searchParams.get('shop');
+    if (!shop) { res.writeHead(400); res.end('Missing shop param'); return; }
+    const redirectUri = encodeURIComponent(`${PROXY_BASE}/callback`);
+    const scopes = 'write_products,read_products';
+    const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${CLIENT_ID}&scope=${scopes}&redirect_uri=${redirectUri}`;
+    res.writeHead(302, { Location: installUrl });
+    res.end();
+    return;
+  }
+
+  // ── OAuth Step 2: /callback?code=xxx&shop=xxx ───────────────────────────────
+  if (url.pathname === '/callback') {
+    const shop = url.searchParams.get('shop');
+    const code = url.searchParams.get('code');
+    if (!shop || !code) { res.writeHead(400); res.end('Missing shop or code'); return; }
+
+    // Exchange code for token
+    const body = JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, code });
+    const options = {
+      hostname: shop,
+      path: '/admin/oauth/access_token',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+    };
+
+    const tokenReq = https.request(options, (tokenRes) => {
+      let data = '';
+      tokenRes.on('data', chunk => data += chunk);
+      tokenRes.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.access_token) {
+            tokenStore[shop] = json.access_token;
+            console.log(`✓ Token saved for ${shop}: ${json.access_token}`);
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(`
+              <html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0a0a0a;color:#fff">
+                <h1 style="color:#4ade80">✓ Connected!</h1>
+                <p>Token saved for <strong>${shop}</strong></p>
+                <p style="font-size:0.85rem;color:#aaa">Token: ${json.access_token}</p>
+                <p style="margin-top:30px">You can close this tab. The uploader will now work for this store.</p>
+              </body></html>
+            `);
+          } else {
+            res.writeHead(400, { 'Content-Type': 'text/plain' });
+            res.end('Token exchange failed: ' + data);
+          }
+        } catch(e) {
+          res.writeHead(500); res.end('Parse error: ' + e.message);
+        }
+      });
+    });
+    tokenReq.on('error', (e) => { res.writeHead(500); res.end('Request error: ' + e.message); });
+    tokenReq.write(body);
+    tokenReq.end();
+    return;
+  }
+
+  // ── Token status: /tokens ────────────────────────────────────────────────────
+  if (url.pathname === '/tokens') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ stores: Object.keys(tokenStore), tokens: tokenStore }));
+    return;
+  }
+
+  // ── Proxy API calls ──────────────────────────────────────────────────────────
   const domain = req.headers['x-shopify-domain'];
   let token = req.headers['x-shopify-token'];
-  const url = new URL(req.url, `http://${req.headers.host}`);
   const path = url.searchParams.get('path') || '/admin/api/2024-01/products.json';
 
-  if (!domain) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Missing headers' })); return; }
+  if (!domain) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Missing X-Shopify-Domain header' }));
+    return;
+  }
+
+  // Use stored token if no token provided (or if provided token looks old/invalid)
+  if (!token || token.length < 10) {
+    token = tokenStore[domain];
+  }
+  // Also prefer stored token over the old hardcoded ones
+  if (tokenStore[domain]) {
+    token = tokenStore[domain];
+  }
 
   if (!token) {
-    try { token = await getToken(domain); }
-    catch(e) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Could not get token: ' + e.message })); return; }
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: `No token for ${domain}. Visit ${PROXY_BASE}/auth?shop=${domain} to connect.` }));
+    return;
   }
 
   let body = '';
   req.on('data', chunk => body += chunk);
   req.on('end', () => {
-    const options = { hostname: domain, path: path, method: req.method, headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token } };
-    const proxyReq = https.request(options, (proxyRes) => { res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' }); proxyRes.pipe(res); });
-    proxyReq.on('error', (e) => { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); });
+    const options = {
+      hostname: domain,
+      path: path,
+      method: req.method,
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token }
+    };
+    const proxyReq = https.request(options, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', (e) => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    });
     if (body) proxyReq.write(body);
     proxyReq.end();
   });
