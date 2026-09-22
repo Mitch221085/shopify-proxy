@@ -800,10 +800,13 @@
         headers:{'X-Shopify-Domain':store.domain,'X-Shopify-Token':store.token,'X-Shopify-Path':'/admin/api/2024-01/locations.json'}
       });
       const locData = await locResp.json();
+      console.log('Locations response:', JSON.stringify(locData));
       const locationId = locData.locations && locData.locations[0] && locData.locations[0].id;
+      console.log('Location ID:', locationId);
       if (locationId && created.product && created.product.variants) {
         for (const variant of created.product.variants) {
-          await fetch(PROXY, {
+          console.log('Setting inventory for variant:', variant.inventory_item_id);
+          const invResp = await fetch(PROXY, {
             method: 'POST',
             headers:{
               'Content-Type':'application/json',
@@ -813,6 +816,8 @@
             },
             body: JSON.stringify({ location_id: locationId, inventory_item_id: variant.inventory_item_id, available: 100 })
           });
+          const invData = await invResp.json();
+          console.log('Inventory set result:', JSON.stringify(invData));
         }
       }
     } catch(e) {
