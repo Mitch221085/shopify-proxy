@@ -796,16 +796,21 @@
     // Set inventory to 100 for each variant (Shopify ignores inventory_quantity on creation)
     try {
       // Get location ID
-      const locResp = await fetch(`${PROXY}?path=/admin/api/2024-01/locations.json`, {
-        headers:{'X-Shopify-Domain':store.domain,'X-Shopify-Token':store.token}
+      const locResp = await fetch(PROXY, {
+        headers:{'X-Shopify-Domain':store.domain,'X-Shopify-Token':store.token,'X-Shopify-Path':'/admin/api/2024-01/locations.json'}
       });
       const locData = await locResp.json();
       const locationId = locData.locations && locData.locations[0] && locData.locations[0].id;
       if (locationId && created.product && created.product.variants) {
         for (const variant of created.product.variants) {
-          await fetch(`${PROXY}?path=/admin/api/2024-01/inventory_levels/set.json`, {
+          await fetch(PROXY, {
             method: 'POST',
-            headers:{'Content-Type':'application/json','X-Shopify-Domain':store.domain,'X-Shopify-Token':store.token},
+            headers:{
+              'Content-Type':'application/json',
+              'X-Shopify-Domain':store.domain,
+              'X-Shopify-Token':store.token,
+              'X-Shopify-Path':'/admin/api/2024-01/inventory_levels/set.json'
+            },
             body: JSON.stringify({ location_id: locationId, inventory_item_id: variant.inventory_item_id, available: 100 })
           });
         }
