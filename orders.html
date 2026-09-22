@@ -206,12 +206,10 @@ async function loadStore(store) {
   el.innerHTML = `<div class="store-label">${store.name}</div><div class="loading">Loading orders…</div>`;
 
   try {
-    const path = '/admin/api/2024-01/orders.json?fulfillment_status=unfulfilled&status=any&limit=50&fields=order_number,fulfillment_status,line_items';
-    const res = await fetch(PROXY, {
+    const res = await fetch(`${PROXY}?path=/admin/api/2024-01/orders.json%3Ffulfillment_status%3Dunfulfilled%26status%3Dany%26limit%3D50%26fields%3Dorder_number%2Cfulfillment_status%2Cline_items`, {
       headers: {
         'X-Shopify-Domain': store.domain,
         'X-Shopify-Token': store.token,
-        'X-Shopify-Path': path,
       }
     });
     const data = await res.json();
