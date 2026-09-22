@@ -7,7 +7,7 @@ const PROXY_BASE = 'https://shopify-proxy-zvbr.onrender.com';
 const STORE_CREDENTIALS = {
   'n1vssu-ky.myshopify.com': {
     client_id: 'ba6a9d61b26c4a5c694a44ce57f63583',
-    client_secret: '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'
+    client_secret: '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'
   },
   'rut00h-1g.myshopify.com': {
     client_id: '0f38698046a401532dc3ccea247de041',
@@ -26,7 +26,6 @@ const server = http.createServer(async (req, res) => {
 
   const url = new URL(req.url, `http://${req.headers.host}`);
 
-  // ── OAuth Step 1: /auth?shop=xxx.myshopify.com ──────────────────────────────
   if (url.pathname === '/auth') {
     const shop = url.searchParams.get('shop');
     if (!shop) { res.writeHead(400); res.end('Missing shop param'); return; }
@@ -40,14 +39,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── OAuth Step 2: /callback?code=xxx&shop=xxx ───────────────────────────────
   if (url.pathname === '/callback') {
     const shop = url.searchParams.get('shop');
     const code = url.searchParams.get('code');
     if (!shop || !code) { res.writeHead(400); res.end('Missing shop or code'); return; }
     const creds = STORE_CREDENTIALS[shop] || {};
 
-    // Exchange code for token
     const body = JSON.stringify({ client_id: creds.client_id, client_secret: creds.client_secret, code });
     const options = {
       hostname: shop,
@@ -89,14 +86,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Token status: /tokens ────────────────────────────────────────────────────
   if (url.pathname === '/tokens') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ stores: Object.keys(tokenStore), tokens: tokenStore }));
     return;
   }
 
-  // ── Proxy API calls ──────────────────────────────────────────────────────────
   const domain = req.headers['x-shopify-domain'];
   let token = req.headers['x-shopify-token'];
   const path = url.searchParams.get('path') || '/admin/api/2024-01/products.json';
@@ -107,11 +102,9 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Use stored token if no token provided (or if provided token looks old/invalid)
   if (!token || token.length < 10) {
     token = tokenStore[domain];
   }
-  // Also prefer stored token over the old hardcoded ones
   if (tokenStore[domain]) {
     token = tokenStore[domain];
   }
