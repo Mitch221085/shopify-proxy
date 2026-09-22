@@ -1,4 +1,619 @@
-   grid.appendChild(btn);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Product Uploader — York & Miller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3250;
+    --border-hover: #4a5180;
+    --text: #e8eaf6;
+    --text-muted: #7c84b0;
+    --text-dim: #4a5180;
+    --accent: #5ee7b0;
+    --accent-dim: rgba(94,231,176,0.12);
+    --accent-hover: #3fd99a;
+    --danger: #ff6b6b;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h1 span.logo {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #0f1117;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .status-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .field { margin-bottom: 16px; }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  label .req { color: var(--accent); margin-left: 2px; }
+  input[type="text"],
+  input[type="number"],
+  textarea,
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 100px; line-height: 1.55; }
+  select option { background: var(--surface2); }
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .store-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .store-card {
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .store-card:hover { border-color: var(--border-hover); }
+  .store-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .store-card input[type="checkbox"] {
+    position: absolute; top: 10px; right: 10px;
+    width: 16px; height: 16px;
+    accent-color: var(--accent);
+  }
+  .store-card .store-name { font-size: 0.85rem; font-weight: 600; margin-bottom: 2px; }
+  .store-card .store-url { font-size: 0.72rem; color: var(--text-muted); }
+  .chips-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    min-height: 44px;
+    cursor: text;
+    transition: border-color 0.15s;
+  }
+  .chips-wrap:focus-within { border-color: var(--accent); }
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 2px 8px;
+  }
+  .chip button {
+    background: none; border: none; cursor: pointer;
+    color: var(--accent); font-size: 1rem; line-height: 1;
+    padding: 0; display: flex; align-items: center;
+  }
+  .chips-input {
+    border: none !important;
+    background: transparent !important;
+    padding: 2px 4px !important;
+    min-width: 80px;
+    flex: 1;
+    color: var(--text);
+    font-size: 0.85rem;
+    outline: none;
+  }
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.dragging {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-icon { font-size: 2rem; margin-bottom: 8px; }
+  .drop-text { font-size: 0.85rem; color: var(--text-muted); }
+  .drop-hint { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+  .image-previews { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .img-wrap { position: relative; width: 72px; height: 72px; }
+  .img-thumb {
+    width: 72px; height: 72px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    border: 1px solid var(--border);
+  }
+  .img-wrap .remove-img {
+    position: absolute;
+    top: -6px; right: -6px;
+    width: 18px; height: 18px;
+    background: var(--danger);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 0.65rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+  .size-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .size-toggle {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .size-toggle.active {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+  .ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.12s;
+    margin-bottom: 8px;
+  }
+  .ai-btn:hover { background: rgba(94,231,176,0.2); }
+  .upload-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #0f1117;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .upload-btn:hover { background: var(--accent-hover); }
+  .upload-btn:active { transform: scale(0.98); }
+  .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .preview-section { position: sticky; top: 24px; }
+  .preview-product {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .preview-img-box {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    overflow: hidden;
+  }
+  .preview-img-box img { width: 100%; height: 100%; object-fit: cover; }
+  .preview-info { padding: 12px; }
+  .preview-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+  .preview-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .preview-compare { font-size: 0.82rem; color: var(--text-dim); text-decoration: line-through; }
+  .preview-sizes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+  .preview-size-chip {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+  .preview-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; margin-top: 8px; }
+  .result-panel {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    display: none;
+  }
+  .result-panel.success { display: block; background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); }
+  .result-panel.error { display: block; background: rgba(255,107,107,0.1); border: 1px solid var(--danger); color: var(--danger); }
+  .result-panel.info { display: block; background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); }
+  .result-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(94,231,176,0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hint { font-size: 0.75rem; color: var(--text-dim); margin-top: 5px; }
+  .aliexpress-row { display: flex; gap: 8px; }
+  .aliexpress-row input { flex: 1; }
+  .fetch-btn {
+    padding: 0 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.12s, color 0.12s;
+    flex-shrink: 0;
+  }
+  .fetch-btn:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>
+    <span class="logo">↑</span>
+    Product Uploader
+  </h1>
+  <div class="status-badge">York &amp; Miller</div>
+</div>
+
+<div class="layout">
+  <div>
+    <!-- Store Selection -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Upload to Store</div>
+      <div class="store-selector">
+        <div class="store-card" id="card-s1">
+          <input type="checkbox" id="store1" checked onchange="toggleStore(1)">
+          <div class="store-name">York &amp; Miller</div>
+          <div class="store-url">n1vssu-ky.myshopify.com</div>
+        </div>
+        <div class="store-card" id="card-s2">
+          <input type="checkbox" id="store2" onchange="toggleStore(2)">
+          <div class="store-name">Store 2</div>
+          <div class="store-url">rut00h-1g.myshopify.com</div>
+        </div>
+      </div>
+      <div id="title-s1-wrap" class="field">
+        <label>Product Title — York &amp; Miller <span class="req">*</span></label>
+        <input type="text" id="title-s1" placeholder="e.g. Aegis Chronograph Watch" oninput="updatePreview()">
+      </div>
+      <div id="title-s2-wrap" class="field" style="display:none">
+        <label>Product Title — Store 2 <span class="req">*</span></label>
+        <input type="text" id="title-s2" placeholder="Different name for Store 2">
+      </div>
+    </div>
+
+    <!-- Images -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Images</div>
+      <div class="field">
+        <label>AliExpress URL (optional)</label>
+        <div class="aliexpress-row">
+          <input type="text" id="aliexpress-url" placeholder="https://www.aliexpress.com/item/...">
+          <button class="fetch-btn" onclick="noteAliExpress()">Note URL</button>
+        </div>
+        <div class="hint">Paste the AliExpress link — saved with the product.</div>
+      </div>
+      <div class="field">
+        <label>Upload Your Images</label>
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="img-input" multiple accept="image/*" onchange="handleFiles(this.files)">
+          <div class="drop-icon">🖼️</div>
+          <div class="drop-text">Click to select or drag &amp; drop images</div>
+          <div class="drop-hint">PNG, JPG, WEBP — up to 10 images</div>
+        </div>
+        <div class="image-previews" id="image-previews"></div>
+      </div>
+    </div>
+
+    <!-- Product Details -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Product Details</div>
+      <div class="field">
+        <label>Category</label>
+        <select id="category" onchange="onCategoryChange()">
+          <option value="">Select category…</option>
+          <option>Men's Tops</option>
+          <option>Men's Bottoms</option>
+          <option>Men's Footwear</option>
+          <option>Women's Tops</option>
+          <option>Women's Bottoms</option>
+          <option>Women's Footwear</option>
+          <option>Watches</option>
+          <option>Jewelry</option>
+          <option>Bags &amp; Wallets</option>
+          <option>Eyewear</option>
+          <option>Accessories</option>
+          <option>Home Goods</option>
+          <option>iPhone Accessories</option>
+        </select>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>Price (USD) <span class="req">*</span></label>
+          <input type="number" id="price" placeholder="59.99" step="0.01" min="0" oninput="updatePreview()">
+        </div>
+        <div class="field">
+          <label>Compare-at Price</label>
+          <input type="number" id="compare-price" placeholder="119.99" step="0.01" min="0" oninput="updatePreview()">
+        </div>
+      </div>
+      <div class="field" id="sizes-section" style="display:none">
+        <label id="sizes-label">Sizes</label>
+        <div class="size-grid" id="size-grid"></div>
+      </div>
+      <div class="field">
+        <label>Colors</label>
+        <div class="chips-wrap" id="colors-wrap" onclick="document.getElementById('color-input').focus()">
+          <input class="chips-input" id="color-input" type="text" placeholder="Type a color, press Enter…" onkeydown="addChip(event,'colors')">
+        </div>
+        <div class="hint">e.g. Black, White, Navy Blue — press Enter after each</div>
+      </div>
+      <div class="field">
+        <button class="ai-btn" onclick="generateDraft()">✦ Generate AI draft</button>
+        <label>Description <span class="req">*</span></label>
+        <textarea id="description" placeholder="Write your product description here…" oninput="updatePreview()"></textarea>
+      </div>
+      <div class="field">
+        <label>Tags</label>
+        <div class="chips-wrap" id="tags-wrap" onclick="document.getElementById('tag-input').focus()">
+          <input class="chips-input" id="tag-input" type="text" placeholder="Type a tag, press Enter…" onkeydown="addChip(event,'tags')">
+        </div>
+        <div class="hint">e.g. summer, men, casual</div>
+      </div>
+    </div>
+
+    <button class="upload-btn" id="upload-btn" onclick="uploadProduct()">
+      ↑ Upload to Shopify
+    </button>
+    <div class="result-panel" id="result-panel"></div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-section">
+    <div class="card">
+      <div class="card-title">Live Preview</div>
+      <div class="preview-product">
+        <div class="preview-img-box" id="preview-img-box"><span>No image yet</span></div>
+        <div class="preview-info">
+          <div class="preview-title" id="preview-title">Product name</div>
+          <div class="preview-price">
+            <span id="preview-price">$0.00</span>
+            <span class="preview-compare" id="preview-compare" style="display:none"></span>
+          </div>
+          <div class="preview-sizes" id="preview-sizes"></div>
+          <div class="preview-desc" id="preview-desc"></div>
+        </div>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-dim);text-align:center;margin-top:4px">
+        Preview only — actual Shopify page may differ
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const PROXY = 'https://shopify-proxy-zvbr.onrender.com';
+  const STORES = {
+    s1: { name: 'York & Miller', domain: 'n1vssu-ky.myshopify.com', token: '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' },
+    s2: { name: 'Store 2',       domain: 'rut00h-1g.myshopify.com', token: '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' }
+  };
+  const SIZES = {
+    clothing: ['XS','S','M','L','XL','2XL','3XL'],
+    footwear_m: ['6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','13'],
+    footwear_w: ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11'],
+  };
+  const CATEGORY_SIZE_MAP = {
+    "Men's Tops":'clothing',"Men's Bottoms":'clothing',
+    "Women's Tops":'clothing',"Women's Bottoms":'clothing',
+    "Men's Footwear":'footwear_m',"Women's Footwear":'footwear_w',
+  };
+
+  // York & Miller copy templates — matched to real store style
+  // Pattern: punchy one-liner opening the product's best feature + lifestyle payoff,
+  // followed by 4-5 tight factual bullet points.
+  const COPY_TEMPLATES = {
+    "Men's Tops": [
+      (t) => `"Sharp tailoring meets everyday ease in the ${t}, crafted from a premium fabric blend to elevate your casual and semi-formal looks alike."\n\n• Premium fabric blend\n• Tailored modern fit\n• Breathable construction\n• Versatile styling\n• Machine wash`,
+      (t) => `"Clean lines and refined detail make the ${t} a wardrobe cornerstone — built for the man who sets the standard, not follows it."\n\n• Premium quality materials\n• Modern slim fit\n• Wrinkle-resistant fabric\n• All-day comfort\n• Machine wash`,
+    ],
+    "Men's Bottoms": [
+      (t) => `"A clean silhouette and precision cut lend a polished edge to the ${t}, designed to transition effortlessly from desk to dinner."\n\n• Premium fabric construction\n• Tailored straight fit\n• Deep side pockets\n• Reinforced stitching\n• Machine wash`,
+      (t) => `"Structured yet comfortable, the ${t} combines a refined cut with durable craftsmanship for a look that holds up from morning to night."\n\n• Durable fabric blend\n• Classic tapered fit\n• Functional pocket design\n• Easy care fabric\n• Machine wash`,
+    ],
+    "Men's Footwear": [
+      (t) => `"Premium leather construction and a carefully considered sole give the ${t} a sleek, contemporary edge that elevates any formal or semi-formal ensemble."\n\n• Genuine leather upper\n• Cushioned footbed\n• Durable rubber outsole\n• True to size fit\n• Available in multiple colorways`,
+      (t) => `"Built for the discerning man, the ${t} pairs refined craftsmanship with all-day comfort — a shoe that works as hard as you do."\n\n• Leather upper construction\n• Memory foam insole\n• Non-slip outsole\n• Breathable lining\n• True to size`,
+    ],
+    "Women's Tops": [
+      (t) => `"Effortless elegance defines the ${t} — crafted from a premium fabric blend that drapes beautifully and transitions from day to evening without missing a beat."\n\n• Premium fabric blend\n• Flattering relaxed fit\n• Soft breathable material\n• Versatile styling\n• Machine wash`,
+      (t) => `"The ${t} brings a modern feminine edge to your wardrobe, combining refined design with all-day wearability in a piece that refuses to blend in."\n\n• High-quality construction\n• Contemporary cut\n• Lightweight breathable fabric\n• Easy care\n• Machine wash`,
+    ],
+    "Women's Bottoms": [
+      (t) => `"Vibrant detail and a premium fabric blend lend a polished, contemporary edge to the ${t} — crafted to complement your most refined looks."\n\n• Premium fabric blend\n• Flattering cut\n• Soft lining\n• Side zip closure\n• Machine wash`,
+      (t) => `"The ${t} strikes the perfect balance between comfort and sophistication, offering a versatile silhouette that moves with you through every occasion."\n\n• Quality fabric construction\n• Ankle length\n• Smooth interior lining\n• Elasticated waistband\n• Machine wash`,
+    ],
+    "Women's Footwear": [
+      (t) => `"Confident design meets everyday wearability in the ${t} — a shoe built to carry your look from the office to the occasion."\n\n• Premium upper construction\n• Cushioned insole\n• Sturdy heel\n• Non-slip outsole\n• True to size`,
+      (t) => `"The ${t} brings understated sophistication to every step, pairing a refined silhouette with lasting comfort for the woman who never compromises on style."\n\n• Quality leather-look upper\n• Padded footbed\n• Durable sole\n• Elegant finish\n• True to size`,
+    ],
+    "Watches": [
+      (t) => `"Engineered for bold precision, the ${t} features a multi-functional dial with layered detailing and a refined strap — built to perform and designed to stand out."\n\n• Precision movement\n• Multi-layered dial with date window\n• Durable strap\n• Water-resistant construction\n• Adjustable strap length`,
+      (t) => `"The ${t} merges classic watchmaking with contemporary design — a statement on your wrist that reads sophistication in every detail."\n\n• High-precision quartz movement\n• Scratch-resistant mineral glass\n• Stainless steel case\n• Adjustable clasp\n• Water-resistant`,
+    ],
+    "Jewelry": [
+      (t) => `"Delicate craftsmanship and considered detail make the ${t} a piece you'll reach for every day — refined enough for occasions, effortless enough for everyday."\n\n• Premium metal finish\n• Tarnish-resistant coating\n• Secure clasp\n• Hypoallergenic materials\n• Gift-ready packaging`,
+      (t) => `"The ${t} brings subtle elegance to any look — a beautifully crafted accent designed to complement your personal style without overpowering it."\n\n• High-quality metalwork\n• Polished finish\n• Lightweight construction\n• Hypoallergenic\n• Adjustable fit`,
+    ],
+    "Bags & Wallets": [
+      (t) => `"Structured design and premium materials make the ${t} a carry-everywhere essential — built for the person who refuses to choose between function and style."\n\n• Premium exterior material\n• Multiple interior compartments\n• Secure zip closure\n• Reinforced handles/straps\n• Dimensions: fits everyday essentials`,
+      (t) => `"The ${t} combines clean lines with smart organisation — a refined everyday carry that holds everything you need and nothing you don't."\n\n• Durable exterior construction\n• Organised interior layout\n• Secure magnetic/zip closure\n• Comfortable carry\n• Compact profile`,
+    ],
+    "Eyewear": [
+      (t) => `"Bold frames and UV-protective lenses give the ${t} a look that's as functional as it is statement-making — designed for those who wear confidence well."\n\n• UV400 protective lenses\n• Lightweight frame\n• Spring hinge temples\n• Unisex silhouette\n• Includes protective case`,
+      (t) => `"The ${t} pairs a sleek frame profile with high-quality lenses built to protect and impress — every detail considered, nothing left to chance."\n\n• Polarised UV400 lenses\n• Durable acetate/metal frame\n• Anti-glare coating\n• Comfortable fit\n• Includes cleaning cloth`,
+    ],
+    "Accessories": [
+      (t) => `"The ${t} is the finishing touch your look has been waiting for — a premium accent crafted with the same attention to detail you'd expect from York & Miller."\n\n• Premium quality construction\n• Versatile styling\n• Durable finish\n• Compact and lightweight\n• Perfect gift option`,
+      (t) => `"Refined, functional, and designed to last — the ${t} brings quiet sophistication to the details that make the difference."\n\n• High-quality materials\n• Considered design\n• Durable construction\n• Easy to use\n• Compact profile`,
+    ],
+    "Home Goods": [
+      (t) => `"Inspired by considered design, the ${t} brings texture, warmth, and a refined aesthetic to any space — crafted to complement your home's most polished looks."\n\n• Premium materials\n• Thoughtful design detail\n• Easy care\n• Versatile placement\n• Available in multiple sizes`,
+      (t) => `"The ${t} transforms everyday spaces into something intentional — a beautifully crafted piece that balances comfort and coastal or contemporary charm with ease."\n\n• High-quality construction\n• Soft texture finish\n• Non-slip backing (where applicable)\n• Easy to clean\n• Dimensions listed per variant`,
+    ],
+    "iPhone Accessories": [
+      (t) => `"The ${t} pairs precision engineering with a refined finish — built to protect your device without compromising the sleek profile you paid for."\n\n• Compatible with select iPhone models\n• Shock-absorbent construction\n• Raised edge screen protection\n• Slim profile\n• Easy button and port access`,
+      (t) => `"Designed for the detail-oriented, the ${t} offers reliable protection and a premium look — because what you carry says as much as what you wear."\n\n• Precision-fit design\n• Durable materials\n• Full port and button access\n• Wireless charging compatible\n• Slim and lightweight`,
+    ],
+  };
+
+  const DEFAULT_TEMPLATES = [
+    (t) => `"The ${t} is a carefully considered addition to the York & Miller collection — crafted for those who find meaning in the details and refuse to settle for ordinary."\n\n• Premium quality materials\n• Refined design\n• Durable construction\n• Versatile use\n• 30-day money-back guarantee`,
+    (t) => `"Built with the same commitment to quality that defines York & Miller, the ${t} brings sophistication, comfort, and lasting value to everything you do."\n\n• High-quality construction\n• Contemporary design\n• Durable finish\n• Easy care\n• Backed by our 30-day guarantee`,
+  ];
+
+  let imageFiles = [], colorChips = [], tagChips = [], selectedSizes = [], aliUrl = '';
+
+  function toggleStore(n) {
+    const cb = document.getElementById('store'+n);
+    document.getElementById('card-s'+n).classList.toggle('selected', cb.checked);
+    if (n===2) document.getElementById('title-s2-wrap').style.display = cb.checked ? '' : 'none';
+  }
+  document.getElementById('card-s1').classList.add('selected');
+
+  function onCategoryChange() {
+    const cat = document.getElementById('category').value;
+    const key = CATEGORY_SIZE_MAP[cat];
+    const sec = document.getElementById('sizes-section');
+    const grid = document.getElementById('size-grid');
+    if (key) {
+      sec.style.display = '';
+      document.getElementById('sizes-label').textContent = key.startsWith('footwear') ? 'Sizes (US)' : 'Sizes';
+      grid.innerHTML = ''; selectedSizes = [];
+      SIZES[key].forEach(s => {
+        const btn = document.createElement('button');
+        btn.className = 'size-toggle'; btn.textContent = s;
+        btn.onclick = () => {
+          btn.classList.toggle('active');
+          if (btn.classList.contains('active')) selectedSizes.push(s);
+          else selectedSizes = selectedSizes.filter(x=>x!==s);
+          updatePreview();
+        };
+        grid.appendChild(btn);
       });
     } else { sec.style.display = 'none'; selectedSizes = []; }
     updatePreview();
