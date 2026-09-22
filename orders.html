@@ -173,16 +173,9 @@ const STORES = [
   { id: 's2', name: 'Store 2',       domain: 'rut00h-1g.myshopify.com', token: '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' },
 ];
 
-async function shopifyFetch(store, shopifyPath) {
-  // Try direct Shopify first (works if CORS allows), fallback to proxy
-  try {
-    const direct = await fetch(`https://${store.domain}${shopifyPath}`, {
-      headers: { 'X-Shopify-Access-Token': store.token, 'Content-Type': 'application/json' }
-    });
-    if (direct.ok) return direct.json();
-  } catch(e) {}
-  // Proxy fallback
-  const r = await fetch(`${PROXY}?path=${encodeURIComponent(shopifyPath)}`, {
+async function shopifyFetch(store) {
+  // Use dedicated /orders endpoint — no query string encoding needed
+  const r = await fetch(`${PROXY}/orders`, {
     headers: { 'X-Shopify-Domain': store.domain, 'X-Shopify-Token': store.token }
   });
   return r.json();
@@ -221,8 +214,7 @@ async function loadStore(store) {
   el.innerHTML = `<div class="store-label">${store.name}</div><div class="loading">Loading orders…</div>`;
 
   try {
-    const shopifyPath = '/admin/api/2024-01/orders.json?fulfillment_status=unfulfilled&status=any&limit=50&fields=order_number,fulfillment_status,line_items';
-    const data = await shopifyFetch(store, shopifyPath);
+    const data = await shopifyFetch(store);
 
     if (data.error) {
       el.innerHTML = `<div class="store-label">${store.name}</div><div class="error-msg">${data.error}</div>`;
