@@ -166,18 +166,15 @@
 <div id="store-s2" class="store-section"></div>
 
 <script>
-const PROXY = 'https://shopify-proxy-zvbr.onrender.com';
+const WORKER = 'https://shopify-orders.michelezeru.workers.dev';
 
 const STORES = [
-  { id: 's1', name: 'York & Miller', domain: 'n1vssu-ky.myshopify.com', token: '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' },
-  { id: 's2', name: 'Store 2',       domain: 'rut00h-1g.myshopify.com', token: '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' },
+  { id: 's1', name: 'York & Miller' },
+  { id: 's2', name: 'Store 2' },
 ];
 
 async function shopifyFetch(store) {
-  // Use dedicated /orders endpoint — no query string encoding needed
-  const r = await fetch(`${PROXY}/orders`, {
-    headers: { 'X-Shopify-Domain': store.domain, 'X-Shopify-Token': store.token }
-  });
+  const r = await fetch(`${WORKER}?store=${store.id}`);
   return r.json();
 }
 
