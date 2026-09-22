@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orders — York & Miller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3250;
+    --border-hover: #4a5180;
+    --text: #e8eaf6;
+    --text-muted: #7c84b0;
+    --text-dim: #4a5180;
+    --accent: #5ee7b0;
+    --accent-dim: rgba(94,231,176,0.12);
+    --accent-hover: #3fd99a;
+    --danger: #ff6b6b;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+  header {
+    max-width: 700px;
+    margin: 0 auto 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .logo { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; color: var(--accent); }
+  .page-title { font-size: 1rem; color: var(--text-muted); }
+  .refresh-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 7px 16px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .refresh-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
+
+  .store-section {
+    max-width: 700px;
+    margin: 0 auto 32px;
+  }
+  .store-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+  .orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .orders-table thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .orders-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  .orders-table tbody tr:last-child { border-bottom: none; }
+  .orders-table tbody tr:hover { background: var(--surface2); }
+  .orders-table td {
+    padding: 11px 16px;
+    font-size: 0.88rem;
+    vertical-align: middle;
+  }
+  .order-num { font-weight: 600; color: var(--accent); font-size: 0.9rem; }
+  .item-name { color: var(--text); }
+  .size-tag {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: .03em;
+  }
+  .size-blank { color: var(--text-dim); font-size: 0.8rem; }
+  .status-tag {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+  }
+  .status-unfulfilled { background: rgba(255,200,60,.12); color: #f5c842; }
+  .status-fulfilled   { background: rgba(94,231,176,.12); color: var(--accent); }
+  .status-partial     { background: rgba(255,150,60,.12); color: #ff9a3c; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  .loading {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .error-msg {
+    background: rgba(255,107,107,.1);
+    border: 1px solid rgba(255,107,107,.3);
+    color: var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+  .updated-at {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Y&M</div>
+    <div class="page-title">Order List</div>
+  </div>
+  <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+</header>
+
+<div id="store-s1" class="store-section"></div>
+<div id="store-s2" class="store-section"></div>
+
+<script>
+const PROXY = 'https://shopify-proxy-zvbr.onrender.com';
+
+const STORES = [
+  { id: 's1', name: 'York & Miller', domain: 'n1vssu-ky.myshopify.com', token: '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' },
+  { id: 's2', name: 'Store 2',       domain: 'rut00h-1g.myshopify.com', token: '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' },
+];
+
+// Size-related variant option names to check
+const SIZE_KEYS = ['size', 'Size', 'SIZE', 'shoe size', 'Shoe Size'];
+
+function getSize(lineItem) {
+  if (!lineItem.variant_title || lineItem.variant_title === 'Default Title') return null;
+  // Check variant properties
+  if (lineItem.properties) {
+    for (const p of lineItem.properties) {
+      if (SIZE_KEYS.includes(p.name)) return p.value;
+    }
+  }
+  // Fallback: use variant_title if it looks like a size
+  const vt = lineItem.variant_title;
+  if (vt && vt !== 'Default Title') return vt;
+  return null;
+}
+
+function statusClass(fulfillment) {
+  if (!fulfillment || fulfillment === 'unfulfilled') return 'status-unfulfilled';
+  if (fulfillment === 'fulfilled') return 'status-fulfilled';
+  return 'status-partial';
+}
+function statusLabel(fulfillment) {
+  if (!fulfillment || fulfillment === 'unfulfilled') return 'Unfulfilled';
+  if (fulfillment === 'fulfilled') return 'Fulfilled';
+  return 'Partial';
+}
+
+async function loadStore(store) {
+  const el = document.getElementById('store-' + store.id);
+  el.innerHTML = `<div class="store-label">${store.name}</div><div class="loading">Loading orders…</div>`;
+
+  try {
+    const path = '/admin/api/2024-01/orders.json?fulfillment_status=unfulfilled&status=any&limit=50&fields=order_number,fulfillment_status,line_items';
+    const res = await fetch(`${PROXY}?path=${encodeURIComponent(path)}`, {
+      headers: {
+        'X-Shopify-Domain': store.domain,
+        'X-Shopify-Token': store.token,
+      }
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      el.innerHTML = `<div class="store-label">${store.name}</div><div class="error-msg">${data.error}</div>`;
+      return;
+    }
+
+    const orders = data.orders || [];
+
+    // Flatten: one row per line item
+    const rows = [];
+    for (const order of orders) {
+      for (const item of order.line_items) {
+        const size = getSize(item);
+        rows.push({
+          orderNum: order.order_number,
+          itemName: item.name || item.title,
+          size: size,
+          fulfillment: order.fulfillment_status,
+          qty: item.quantity,
+        });
+      }
+    }
+
+    if (rows.length === 0) {
+      el.innerHTML = `<div class="store-label">${store.name}</div>
+        <table class="orders-table">
+          <thead><tr><th>Order</th><th>Item</th><th>Size</th><th>Status</th></tr></thead>
+          <tbody><tr><td colspan="4" class="empty-state">No open orders</td></tr></tbody>
+        </table>`;
+      return;
+    }
+
+    const tbody = rows.map(r => `
+      <tr>
+        <td><span class="order-num">#${r.orderNum}</span>${r.qty > 1 ? ` <span class="size-blank">×${r.qty}</span>` : ''}</td>
+        <td class="item-name">${r.itemName}</td>
+        <td>${r.size ? `<span class="size-tag">${r.size}</span>` : `<span class="size-blank">—</span>`}</td>
+        <td><span class="status-tag ${statusClass(r.fulfillment)}">${statusLabel(r.fulfillment)}</span></td>
+      </tr>
+    `).join('');
+
+    const now = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+    el.innerHTML = `
+      <div class="store-label">${store.name}</div>
+      <table class="orders-table">
+        <thead><tr><th>Order</th><th>Item</th><th>Size</th><th>Status</th></tr></thead>
+        <tbody>${tbody}</tbody>
+      </table>
+      <div class="updated-at">Updated at ${now}</div>
+    `;
+  } catch(e) {
+    el.innerHTML = `<div class="store-label">${store.name}</div><div class="error-msg">Error: ${e.message}</div>`;
+  }
+}
+
+function loadAll() {
+  STORES.forEach(loadStore);
+}
+
+loadAll();
+</script>
+</body>
+</html>
