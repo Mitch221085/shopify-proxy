@@ -20,12 +20,13 @@ const tokenStore = {};
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Shopify-Domain, X-Shopify-Token');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Shopify-Domain, X-Shopify-Token, X-Shopify-Path');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
   const url = new URL(req.url, `http://${req.headers.host}`);
 
+  // ── OAuth Step 1: /auth?shop=xxx.myshopify.com ──────────────────────────────
   if (url.pathname === '/auth') {
     const shop = url.searchParams.get('shop');
     if (!shop) { res.writeHead(400); res.end('Missing shop param'); return; }
@@ -39,12 +40,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── OAuth Step 2: /callback?code=xxx&shop=xxx ───────────────────────────────
   if (url.pathname === '/callback') {
     const shop = url.searchParams.get('shop');
     const code = url.searchParams.get('code');
     if (!shop || !code) { res.writeHead(400); res.end('Missing shop or code'); return; }
     const creds = STORE_CREDENTIALS[shop] || {};
 
+    // Exchange code for token
     const body = JSON.stringify({ client_id: creds.client_id, client_secret: creds.client_secret, code });
     const options = {
       hostname: shop,
@@ -86,15 +89,17 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── Token status: /tokens ────────────────────────────────────────────────────
   if (url.pathname === '/tokens') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ stores: Object.keys(tokenStore), tokens: tokenStore }));
     return;
   }
 
+  // ── Proxy API calls ──────────────────────────────────────────────────────────
   const domain = req.headers['x-shopify-domain'];
   let token = req.headers['x-shopify-token'];
-  const path = url.searchParams.get('path') || '/admin/api/2024-01/products.json';
+  const path = req.headers['x-shopify-path'] || url.searchParams.get('path') || '/admin/api/2024-01/products.json';
 
   if (!domain) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -102,9 +107,11 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Use stored token if no token provided (or if provided token looks old/invalid)
   if (!token || token.length < 10) {
     token = tokenStore[domain];
   }
+  // Also prefer stored token over the old hardcoded ones
   if (tokenStore[domain]) {
     token = tokenStore[domain];
   }

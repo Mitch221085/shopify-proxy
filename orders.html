@@ -207,10 +207,11 @@ async function loadStore(store) {
 
   try {
     const path = '/admin/api/2024-01/orders.json?fulfillment_status=unfulfilled&status=any&limit=50&fields=order_number,fulfillment_status,line_items';
-    const res = await fetch(`${PROXY}?path=${path}`, {
+    const res = await fetch(PROXY, {
       headers: {
         'X-Shopify-Domain': store.domain,
         'X-Shopify-Token': store.token,
+        'X-Shopify-Path': path,
       }
     });
     const data = await res.json();
