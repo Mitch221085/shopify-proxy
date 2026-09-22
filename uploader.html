@@ -791,7 +791,30 @@
       const err = await resp.json().catch(()=>({}));
       throw new Error(err.errors?JSON.stringify(err.errors):`HTTP ${resp.status}`);
     }
-    return await resp.json();
+    const created = await resp.json();
+
+    // Set inventory to 100 for each variant (Shopify ignores inventory_quantity on creation)
+    try {
+      // Get location ID
+      const locResp = await fetch(`${PROXY}?path=/admin/api/2024-01/locations.json`, {
+        headers:{'X-Shopify-Domain':store.domain,'X-Shopify-Token':store.token}
+      });
+      const locData = await locResp.json();
+      const locationId = locData.locations && locData.locations[0] && locData.locations[0].id;
+      if (locationId && created.product && created.product.variants) {
+        for (const variant of created.product.variants) {
+          await fetch(`${PROXY}?path=/admin/api/2024-01/inventory_levels/set.json`, {
+            method: 'POST',
+            headers:{'Content-Type':'application/json','X-Shopify-Domain':store.domain,'X-Shopify-Token':store.token},
+            body: JSON.stringify({ location_id: locationId, inventory_item_id: variant.inventory_item_id, available: 100 })
+          });
+        }
+      }
+    } catch(e) {
+      console.warn('Inventory set failed:', e.message);
+    }
+
+    return created;
   }
 
   function toBase64(file) {
