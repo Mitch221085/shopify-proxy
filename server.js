@@ -1,9 +1,19 @@
 const http = require('http');
 const https = require('https');
 
-const CLIENT_ID = 'ba6a9d61b26c4a5c694a44ce57f63583';
-const CLIENT_SECRET = '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';
 const PROXY_BASE = 'https://shopify-proxy-zvbr.onrender.com';
+
+// Each store has its own app credentials
+const STORE_CREDENTIALS = {
+  'n1vssu-ky.myshopify.com': {
+    client_id: 'ba6a9d61b26c4a5c694a44ce57f63583',
+    client_secret: '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'
+  },
+  'rut00h-1g.myshopify.com': {
+    client_id: '0f38698046a401532dc3ccea247de041',
+    client_secret: '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'
+  }
+};
 
 // In-memory token store (persists as long as Render keeps the process alive)
 const tokenStore = {};
@@ -20,9 +30,11 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/auth') {
     const shop = url.searchParams.get('shop');
     if (!shop) { res.writeHead(400); res.end('Missing shop param'); return; }
+    const creds = STORE_CREDENTIALS[shop];
+    if (!creds) { res.writeHead(400); res.end('Unknown shop: ' + shop); return; }
     const redirectUri = encodeURIComponent(`${PROXY_BASE}/callback`);
     const scopes = 'write_products,read_products';
-    const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${CLIENT_ID}&scope=${scopes}&redirect_uri=${redirectUri}`;
+    const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${creds.client_id}&scope=${scopes}&redirect_uri=${redirectUri}`;
     res.writeHead(302, { Location: installUrl });
     res.end();
     return;
@@ -33,9 +45,10 @@ const server = http.createServer(async (req, res) => {
     const shop = url.searchParams.get('shop');
     const code = url.searchParams.get('code');
     if (!shop || !code) { res.writeHead(400); res.end('Missing shop or code'); return; }
+    const creds = STORE_CREDENTIALS[shop] || {};
 
     // Exchange code for token
-    const body = JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, code });
+    const body = JSON.stringify({ client_id: creds.client_id, client_secret: creds.client_secret, code });
     const options = {
       hostname: shop,
       path: '/admin/oauth/access_token',
