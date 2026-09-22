@@ -3,7 +3,6 @@ const https = require('https');
 
 const PROXY_BASE = 'https://shopify-proxy-zvbr.onrender.com';
 
-// Each store has its own app credentials
 const STORE_CREDENTIALS = {
   'n1vssu-ky.myshopify.com': {
     client_id: 'ba6a9d61b26c4a5c694a44ce57f63583',
@@ -15,8 +14,26 @@ const STORE_CREDENTIALS = {
   }
 };
 
-// In-memory token store (persists as long as Render keeps the process alive)
 const tokenStore = {};
+
+function shopifyRequest(domain, token, path, method, body, res) {
+  const options = {
+    hostname: domain,
+    path: path,
+    method: method || 'GET',
+    headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token }
+  };
+  const proxyReq = https.request(options, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
+    proxyRes.pipe(res);
+  });
+  proxyReq.on('error', (e) => {
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  });
+  if (body) proxyReq.write(body);
+  proxyReq.end();
+}
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -33,7 +50,7 @@ const server = http.createServer(async (req, res) => {
     const creds = STORE_CREDENTIALS[shop];
     if (!creds) { res.writeHead(400); res.end('Unknown shop: ' + shop); return; }
     const redirectUri = encodeURIComponent(`${PROXY_BASE}/callback`);
-    const scopes = 'write_products,read_products';
+    const scopes = 'write_products,read_products,read_orders';
     const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${creds.client_id}&scope=${scopes}&redirect_uri=${redirectUri}`;
     res.writeHead(302, { Location: installUrl });
     res.end();
@@ -47,7 +64,6 @@ const server = http.createServer(async (req, res) => {
     if (!shop || !code) { res.writeHead(400); res.end('Missing shop or code'); return; }
     const creds = STORE_CREDENTIALS[shop] || {};
 
-    // Exchange code for token
     const body = JSON.stringify({ client_id: creds.client_id, client_secret: creds.client_secret, code });
     const options = {
       hostname: shop,
@@ -71,7 +87,7 @@ const server = http.createServer(async (req, res) => {
                 <h1 style="color:#4ade80">✓ Connected!</h1>
                 <p>Token saved for <strong>${shop}</strong></p>
                 <p style="font-size:0.85rem;color:#aaa">Token: ${json.access_token}</p>
-                <p style="margin-top:30px">You can close this tab. The uploader will now work for this store.</p>
+                <p style="margin-top:30px">You can close this tab.</p>
               </body></html>
             `);
           } else {
@@ -96,7 +112,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Proxy API calls ──────────────────────────────────────────────────────────
+  // ── Dedicated orders endpoint: /orders ──────────────────────────────────────
+  // Called with X-Shopify-Domain and X-Shopify-Token headers only, no encoded query strings
+  if (url.pathname === '/orders') {
+    const domain = req.headers['x-shopify-domain'];
+    let token = req.headers['x-shopify-token'];
+
+    if (!domain) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing X-Shopify-Domain header' }));
+      return;
+    }
+
+    if (tokenStore[domain]) token = tokenStore[domain];
+    if (!token) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `No token for ${domain}` }));
+      return;
+    }
+
+    const shopifyPath = '/admin/api/2024-01/orders.json?fulfillment_status=unfulfilled&status=any&limit=50&fields=order_number,fulfillment_status,line_items';
+    shopifyRequest(domain, token, shopifyPath, 'GET', null, res);
+    return;
+  }
+
+  // ── Proxy API calls (generic) ────────────────────────────────────────────────
   const domain = req.headers['x-shopify-domain'];
   let token = req.headers['x-shopify-token'];
   const path = req.headers['x-shopify-path'] || url.searchParams.get('path') || '/admin/api/2024-01/products.json';
@@ -107,14 +147,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Use stored token if no token provided (or if provided token looks old/invalid)
-  if (!token || token.length < 10) {
-    token = tokenStore[domain];
-  }
-  // Also prefer stored token over the old hardcoded ones
-  if (tokenStore[domain]) {
-    token = tokenStore[domain];
-  }
+  if (!token || token.length < 10) token = tokenStore[domain];
+  if (tokenStore[domain]) token = tokenStore[domain];
 
   if (!token) {
     res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -125,22 +159,7 @@ const server = http.createServer(async (req, res) => {
   let body = '';
   req.on('data', chunk => body += chunk);
   req.on('end', () => {
-    const options = {
-      hostname: domain,
-      path: path,
-      method: req.method,
-      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token }
-    };
-    const proxyReq = https.request(options, (proxyRes) => {
-      res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
-      proxyRes.pipe(res);
-    });
-    proxyReq.on('error', (e) => {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
-    });
-    if (body) proxyReq.write(body);
-    proxyReq.end();
+    shopifyRequest(domain, token, path, req.method, body || null, res);
   });
 });
 
