@@ -509,8 +509,8 @@
 <script>
   const PROXY = 'https://shopify-proxy-zvbr.onrender.com';
   const STORES = {
-    s1: { name: 'York & Miller', domain: 'n1vssu-ky.myshopify.com', token: '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' },
-    s2: { name: 'Store 2',       domain: 'rut00h-1g.myshopify.com', token: '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' }
+    s1: { name: 'York & Miller', domain: 'n1vssu-ky.myshopify.com' },
+    s2: { name: 'Store 2',       domain: 'rut00h-1g.myshopify.com' }
   };
   const SIZES = {
     clothing: ['XS','S','M','L','XL','2XL','3XL'],
@@ -781,8 +781,7 @@
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'X-Shopify-Domain':store.domain,
-        'X-Shopify-Token':store.token
+        'X-Shopify-Domain':store.domain
       },
       body: JSON.stringify({product})
     });
@@ -797,7 +796,7 @@
     try {
       // Get location ID
       const locResp = await fetch(PROXY, {
-        headers:{'X-Shopify-Domain':store.domain,'X-Shopify-Token':store.token,'X-Shopify-Path':'/admin/api/2024-01/locations.json'}
+        headers:{'X-Shopify-Domain':store.domain,'X-Shopify-Path':'/admin/api/2024-01/locations.json'}
       });
       const locData = await locResp.json();
       console.log('Locations response:', JSON.stringify(locData));
@@ -811,7 +810,6 @@
             headers:{
               'Content-Type':'application/json',
               'X-Shopify-Domain':store.domain,
-              'X-Shopify-Token':store.token,
               'X-Shopify-Path':'/admin/api/2024-01/inventory_levels/set.json'
             },
             body: JSON.stringify({ location_id: locationId, inventory_item_id: variant.inventory_item_id, available: 100 })
