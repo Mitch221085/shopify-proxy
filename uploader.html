@@ -749,13 +749,13 @@
     const hasColors = colorChips.length>0, hasSizes = selectedSizes.length>0;
     let variants = [];
     if (!hasColors && !hasSizes) {
-      variants = [{price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}];
+      variants = [{sku:'SKU-DEFAULT',price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}];
     } else if (hasSizes && !hasColors) {
-      variants = selectedSizes.map(s=>({option1:s,price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}));
+      variants = selectedSizes.map((s,i)=>({sku:'SKU-'+i,option1:s,price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}));
     } else if (hasColors && !hasSizes) {
-      variants = colorChips.map(c=>({option1:c,price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}));
+      variants = colorChips.map((c,i)=>({sku:'SKU-'+i,option1:c,price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}));
     } else {
-      colorChips.forEach(color=>selectedSizes.forEach(size=>variants.push({option1:color,option2:size,price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100})));
+      let idx=0; colorChips.forEach(color=>selectedSizes.forEach(size=>variants.push({sku:'SKU-'+(idx++),option1:color,option2:size,price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100})));
     }
 
     const options = [];
