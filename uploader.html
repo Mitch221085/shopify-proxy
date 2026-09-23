@@ -771,7 +771,8 @@
     const product = {
       title,
       body_html: desc.replace(/\n/g,'<br>'),
-      product_type: cat,
+      product_type: cat, 
+      status: 'active',
       tags: tagChips.join(','),
       variants, images,
       ...(options.length>0?{options}:{})
