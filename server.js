@@ -3,6 +3,10 @@ const https = require('https');
 
 const PROXY_BASE = 'https://shopify-proxy-zvbr.onrender.com';
 
+const STORE_CREDENTIALS = {
+  'n1vssu-ky.myshopify.com': { client_id: 'ba6a9d61b26c4a5c694a44ce57f63583', client_secret: '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' },
+  'rut00h-1g.myshopify.com': { client_id: 'ba6a9d61b26c4a5c694a44ce57f63583', client_secret: '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' },
+};
 const STORE_TOKENS = {
   's1': { domain: 'n1vssu-ky.myshopify.com', token: process.env.TOKEN_S1 },
   's2': { domain: 'rut00h-1g.myshopify.com', token: process.env.TOKEN_S2 },
