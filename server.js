@@ -41,6 +41,32 @@ const server = http.createServer(async (req, res) => {
 
   const url = new URL(req.url, 'http://' + req.headers.host);
 
+    if (url.pathname === '/callback') {
+    const shop = url.searchParams.get('shop');
+    const code = url.searchParams.get('code');
+    if (!shop || !code) { res.writeHead(400); res.end('Missing shop or code'); return; }
+    const creds = STORE_CREDENTIALS[shop] || {};
+    const body = JSON.stringify({ client_id: creds.client_id, client_secret: creds.client_secret, code });
+    const options = { hostname: shop, path: '/admin/oauth/access_token', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } };
+    const tokenReq = https.request(options, (tokenRes) => {
+      let data = '';
+      tokenRes.on('data', chunk => data += chunk);
+      tokenRes.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.access_token) {
+            tokenStore[shop] = json.access_token;
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end('<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0a0a0a;color:#fff"><h1 style="color:#4ade80">Connected!</h1><p>Token: ' + json.access_token + '</p></body></html>');
+          } else { res.writeHead(400); res.end('Failed: ' + data); }
+        } catch(e) { res.writeHead(500); res.end('Error: ' + e.message); }
+      });
+    });
+    tokenReq.on('error', (e) => { res.writeHead(500); res.end('Error: ' + e.message); });
+    tokenReq.write(body);
+    tokenReq.end();
+    return;
+  }
   if (url.pathname === '/tokens') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ stores: Object.keys(tokenStore), tokens: tokenStore }));
