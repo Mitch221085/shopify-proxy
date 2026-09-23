@@ -3,15 +3,10 @@ const https = require('https');
 
 const PROXY_BASE = 'https://shopify-proxy-zvbr.onrender.com';
 
-const STORE_CREDENTIALS = {
-  'n1vssu-ky.myshopify.com': {
-    client_id: 'ba6a9d61b26c4a5c694a44ce57f63583',
-    client_secret: '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'
-  },
-  'rut00h-1g.myshopify.com': {
-    client_id: '0f38698046a401532dc3ccea247de041',
-    client_secret: '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'
-  }
+// Tokens stored as environment variables, never in code
+const STORE_TOKENS = {
+  's1': { domain: 'n1vssu-ky.myshopify.com', token: process.env.TOKEN_S1 },
+  's2': { domain: 'rut00h-1g.myshopify.com', token: process.env.TOKEN_S2 },
 };
 
 const tokenStore = {};
@@ -126,6 +121,11 @@ const server = http.createServer(async (req, res) => {
 
     if (tokenStore[domain]) token = tokenStore[domain];
     if (!token) {
+      for (const s of Object.values(STORE_TOKENS)) {
+        if (s.domain === domain && s.token) { token = s.token; break; }
+      }
+    }
+    if (!token) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: `No token for ${domain}` }));
       return;
@@ -150,6 +150,13 @@ const server = http.createServer(async (req, res) => {
   if (!token || token.length < 10) token = tokenStore[domain];
   if (tokenStore[domain]) token = tokenStore[domain];
 
+  // Fall back to env-var tokens by domain
+  if (!token) {
+    for (const s of Object.values(STORE_TOKENS)) {
+      if (s.domain === domain && s.token) { token = s.token; break; }
+    }
+  }
+
   if (!token) {
     res.writeHead(401, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: `No token for ${domain}. Visit ${PROXY_BASE}/auth?shop=${domain} to connect.` }));
@@ -164,4 +171,4 @@ const server = http.createServer(async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Proxy running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Proxy running on port ${PO
