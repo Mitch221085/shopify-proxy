@@ -451,6 +451,10 @@
           <label>Compare-at Price</label>
           <input type="number" id="compare-price" placeholder="119.99" step="0.01" min="0" oninput="updatePreview()">
         </div>
+        <div class="field">
+          <label>Cost per Item</label>
+          <input type="number" id="cost-per-item" placeholder="25.00" step="0.01" min="0">
+        </div>
       </div>
       <div class="field" id="sizes-section" style="display:none">
         <label id="sizes-label">Sizes</label>
@@ -742,6 +746,7 @@
 
   async function uploadToStore(store, title) {
     const compare = document.getElementById('compare-price').value;
+    const costPerItem = document.getElementById('cost-per-item').value;
     const cat = document.getElementById('category').value;
     const desc = document.getElementById('description').value.trim();
     const priceVal = document.getElementById('price').value;
@@ -749,13 +754,13 @@
     const hasColors = colorChips.length>0, hasSizes = selectedSizes.length>0;
     let variants = [];
     if (!hasColors && !hasSizes) {
-      variants = [{sku:'SKU-DEFAULT',price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}];
+      variants = [{sku:'SKU-DEFAULT',price:priceVal,compare_at_price:compare||undefined,cost:costPerItem||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}];
     } else if (hasSizes && !hasColors) {
-      variants = selectedSizes.map((s,i)=>({sku:'SKU-'+i,option1:s,price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}));
+      variants = selectedSizes.map((s,i)=>({sku:'SKU-'+i,option1:s,price:priceVal,compare_at_price:compare||undefined,cost:costPerItem||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}));
     } else if (hasColors && !hasSizes) {
-      variants = colorChips.map((c,i)=>({sku:'SKU-'+i,option1:c,price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}));
+      variants = colorChips.map((c,i)=>({sku:'SKU-'+i,option1:c,price:priceVal,compare_at_price:compare||undefined,cost:costPerItem||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100}));
     } else {
-      let idx=0; colorChips.forEach(color=>selectedSizes.forEach(size=>variants.push({sku:'SKU-'+(idx++),option1:color,option2:size,price:priceVal,compare_at_price:compare||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100})));
+      let idx=0; colorChips.forEach(color=>selectedSizes.forEach(size=>variants.push({sku:'SKU-'+(idx++),option1:color,option2:size,price:priceVal,compare_at_price:compare||undefined,cost:costPerItem||undefined,inventory_management:'shopify',inventory_policy:'continue',inventory_quantity:100})));
     }
 
     const options = [];
@@ -770,7 +775,23 @@
 
     const product = {
       title,
-      body_html: desc.replace(/\n/g,'<br>'),
+      body_html: (function(d){
+        // Convert bullet lines (• or - at start) to <ul><li> list
+        const lines = d.split('\n');
+        let html = '', inList = false;
+        for (const line of lines) {
+          const bullet = line.match(/^[•\-]\s*(.*)/);
+          if (bullet) {
+            if (!inList) { html += '<ul>'; inList = true; }
+            html += '<li>' + bullet[1] + '</li>';
+          } else {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += line ? '<p>' + line + '</p>' : '';
+          }
+        }
+        if (inList) html += '</ul>';
+        return html;
+      })(desc),
       product_type: cat, 
       status: 'active',
       tags: tagChips.join(','),
