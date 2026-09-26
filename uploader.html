@@ -780,7 +780,7 @@
         const lines = d.split('\n');
         let html = '', inList = false;
         for (const line of lines) {
-          const bullet = line.match(/^[•\-]\s*(.*)/);
+          const bullet = line.match(/^[•\-\*]\s*(.*)/);
           if (bullet) {
             if (!inList) { html += '<ul>'; inList = true; }
             html += '<li>' + bullet[1] + '</li>';
