@@ -585,6 +585,22 @@
     ],
   };
 
+  const NAME_TEMPLATES = {
+    "Men's Tops": ["Apex Slim-Fit Tee","Crest Structured Polo","Vance Linen Blend Shirt","Ridgeline Cotton Overshirt","Onyx Crew Neck Sweater"],
+    "Men's Bottoms": ["Vance Tapered Chino","Crest Slim Cargo Pant","Ridgeline Stretch Jean","Onyx Relaxed Trouser","Apex Classic Fit Short"],
+    "Men's Footwear": ["Crest Low-Top Sneaker","Ridgeline Leather Derby","Vance Suede Loafer","Onyx Runner","Apex Chelsea Boot"],
+    "Women's Tops": ["Lune Ribbed Knit Top","Vela Wrap Blouse","Cleo Structured Blazer","Nova Linen Shirt","Aria Fitted Turtleneck"],
+    "Women's Bottoms": ["Lune High-Waist Trouser","Vela Midi Skirt","Cleo Tailored Short","Nova Wide-Leg Pant","Aria Fitted Midi Dress"],
+    "Women's Footwear": ["Lune Block Heel Mule","Vela Pointed Flat","Cleo Ankle Boot","Nova Strappy Sandal","Aria Platform Sneaker"],
+    "Watches": ["Meridian Chronograph","Vantage Day-Date","Crest Diver 200","Onyx Skeleton Watch","Ridgeline Field Watch"],
+    "Jewelry": ["Soleil Layered Necklace","Crest Signet Ring","Lune Hoop Earrings","Vela Cuff Bracelet","Onyx Tennis Chain"],
+    "Bags & Wallets": ["Apex Structured Tote","Ridgeline Crossbody","Crest Bifold Wallet","Onyx Mini Backpack","Vance Card Holder"],
+    "Eyewear": ["Crest Aviator Sunglasses","Onyx Oversized Frame","Vela Cat-Eye Shades","Ridgeline Polarised Lens","Apex Retro Round Frame"],
+    "Accessories": ["Crest Leather Belt","Onyx Knit Beanie","Vance Silk Scarf","Ridgeline Snapback Cap","Apex Satin Headband"],
+    "Home Goods": ["Lune Woven Throw Blanket","Crest Velvet Cushion Cover","Onyx Ceramic Diffuser","Vela Linen Table Runner","Apex Bamboo Serving Tray"],
+    "iPhone Accessories": ["Crest Matte Shield Case","Onyx MagSafe Wallet","Apex Frosted Clear Case","Ridgeline Leather Folio","Vance Shockproof Armor Case"],
+  };
+
   const DEFAULT_TEMPLATES = [
     (t) => `Quality construction, refined design and considered detailing make the ${t} a versatile everyday essential built for those who find meaning in the details.\n\n* Premium quality materials\n* Refined design\n* Durable construction\n* Versatile use\n* 30-day money-back guarantee`,
     (t) => `Built with lasting quality and a contemporary edge, the ${t} brings sophistication and everyday value to everything you do.\n\n* High-quality construction\n* Contemporary design\n* Durable finish\n* Easy care\n* Backed by our 30-day guarantee`,
@@ -684,11 +700,18 @@
 
   function generateDraft() {
     const title = document.getElementById('title-s1').value.trim();
-    if (!title) { alert('Enter a product title first.'); return; }
     const cat = document.getElementById('category').value;
+    if (!cat) { alert('Select a category first.'); return; }
+    // Auto-generate title if empty
+    if (!title && NAME_TEMPLATES[cat]) {
+      const names = NAME_TEMPLATES[cat];
+      title = names[Math.floor(Math.random() * names.length)];
+      document.getElementById('title-s1').value = title;
+      updatePreview();
+    }
     const pool = COPY_TEMPLATES[cat] || DEFAULT_TEMPLATES;
     const fn = pool[Math.floor(Math.random() * pool.length)];
-    document.getElementById('description').value = fn(title);
+    document.getElementById('description').value = fn(title || 'this piece');
     updatePreview();
   }
 
