@@ -699,7 +699,7 @@
   }
 
   function generateDraft() {
-    const title = document.getElementById('title-s1').value.trim();
+    let title = document.getElementById('title-s1').value.trim();
     const cat = document.getElementById('category').value;
     if (!cat) { alert('Select a category first.'); return; }
     // Auto-generate title if empty
